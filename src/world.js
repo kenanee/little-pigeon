@@ -123,18 +123,18 @@ export async function createWorld(scene){
   for(let i=0;i<58;i++){
     const p=oceanPoint(),mesh=new THREE.Mesh(pearlGeo,pearlMat);
     mesh.position.set(p.x,p.y,p.z);mesh.castShadow=false;scene.add(mesh);
-    coins.push({mesh,phase:rand(0,Math.PI*2),respawn:0});
+    coins.push({mesh,phase:rand(0,Math.PI*2),respawn:0,baseY:p.y});
   }
 
   function update(dt){
     for(const coin of coins){
       coin.phase+=dt*2.1;
       coin.mesh.rotation.y+=dt*1.2;
-      coin.mesh.position.y+=Math.sin(coin.phase)*dt*.22;
+      coin.mesh.position.y=coin.baseY+Math.sin(coin.phase)*.22;
       if(coin.respawn>0){
         coin.respawn-=dt;
         if(coin.respawn<=0){
-          const p=oceanPoint();coin.mesh.position.set(p.x,p.y,p.z);coin.mesh.visible=true;
+          const p=oceanPoint();coin.baseY=p.y;coin.mesh.position.set(p.x,p.y,p.z);coin.mesh.visible=true;
         }
       }
     }
