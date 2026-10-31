@@ -298,14 +298,16 @@ function updateEnemies(dt){
   });
 }
 function updateTrafficCollisions(){
-  if(playerPosition.y>1.35)return;
+  if(playerPosition.y>1.35||invulnerable>0)return;
   for(const car of world.cars){
     const dx=car.x-playerPosition.x,dz=car.z-playerPosition.z;
     if(dx*dx+dz*dz<4.3){
       hitPlayer();
+      const distance=Math.hypot(dx,dz)||1;
+      playerPosition.x+=dx/distance*2.7;playerPosition.z+=dz/distance*2.7;
       const state=pigeon.userData.state;
-      state.air=true;state.y=.7;state.vy=2.4;
-      playerPosition.y=.7;
+      state.air=true;state.y=1.2;state.vy=2.8;
+      playerPosition.y=1.2;
       break;
     }
   }
