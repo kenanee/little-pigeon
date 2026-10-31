@@ -24,7 +24,7 @@
       <h1>LITTLE<br><span>PIGEON.</span></h1>
       <p>Bienvenue dans la jungle urbaine. Survole les avenues de New York, évite le trafic et échappe aux poulets frits qui te prennent en chasse.</p>
       <div class="feature-tags"><span>🏙️ Manhattan</span><span>🚕 Trafic réaliste</span><span>🌗 Jour & nuit</span><span>🎵 Ambiance originale</span></div>
-      <div class="control-hint"><b>VOL 3D À LA SOURIS</b><span>Déplace la souris : <strong>gauche / droite</strong> pour tourner, <strong>haut / bas</strong> pour monter ou plonger. <kbd>E</kbd> décoller · <kbd>ZQSD</kbd> avancer / marcher · <kbd>ESPACE</kbd> boost · <kbd>ÉCHAP</kbd> pause.</span></div>
+      <div class="control-hint"><b>VOL 3D À LA SOURIS</b><span>Déplace la souris : <strong>gauche / droite</strong> pour tourner, <strong>haut / bas</strong> pour monter ou plonger. <kbd>E</kbd> décoller · <kbd>C</kbd> ou <kbd>MAJ</kbd> plonger · <kbd>ZQSD</kbd> marcher · <kbd>ESPACE</kbd> boost · <kbd>ÉCHAP</kbd> pause.</span></div>
     </section>
     <section class="panel custom-panel">
       <div class="panel-head"><div><small>AVANT DE DÉCOLLER</small><h2>Ton pigeon</h2></div><div class="wallet">🪙 <b id="wallet-menu">2 000</b></div></div>
@@ -52,7 +52,7 @@
     </div>
   </div>
   <div class="hud-bottom">
-    <div class="player-card"><span class="bird-dot">🐦</span><div><b id="hud-pigeon-name">Pico</b><small>EN VOL</small></div></div>
+    <div class="player-card"><span class="bird-dot">🐦</span><div><b id="hud-pigeon-name">Pico</b><small>SOURIS : VOL 3D</small></div></div>
     <div class="health-card"><div class="health-title"><b>ÉNERGIE</b><span id="health-label">3 / 3</span></div><div id="health-hearts" class="health-hearts"></div></div>
     <div class="boost-card"><div class="health-title"><b>BOOST</b><span id="boost-label">100%</span></div><div class="meter"><i id="boost-fill"></i></div></div>
   </div>
@@ -75,6 +75,7 @@
     <button data-key="KeyS" class="down" aria-label="Reculer">▼</button>
     <button data-key="KeyD" class="right" aria-label="Aller à droite">▶</button>
   </div>
+  <div class="lift-pad"><button data-key="KeyE" aria-label="Monter">VOL ▲</button><button data-key="KeyC" aria-label="Descendre">▼</button></div>
   <button id="mobile-boost" class="boost-touch">BOOST</button>
 </div>
 <div id="toast" class="toast"></div>
