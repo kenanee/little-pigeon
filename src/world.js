@@ -260,7 +260,7 @@ export async function createWorld(scene){
   const hydrantMat=new THREE.MeshStandardMaterial({color:0xb63833,metalness:.25,roughness:.5});
   for(let i=-4;i<=4;i++){
     const n=i*GRID;
-    for(const p=-210;p<=210;p+=70){
+    for(let p=-210;p<=210;p+=70){
       if(Math.random()>.35){
         addStreetLamp(city,n+13,p);
         addStreetLamp(city,p,n-13);
