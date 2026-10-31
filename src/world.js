@@ -294,6 +294,7 @@ export async function createWorld(scene){
     const lane=roadIndex*GRID+(index%4<2?-4.3:4.3);
     const position=rand(-215,215);
     let root=new THREE.Group();
+    let hasWheelAnimation=false;
     if(template){
       const model=template.clone(true);
       model.traverse(node=>{
@@ -315,6 +316,7 @@ export async function createWorld(scene){
       root.add(model);
       const wheelClip=animations.find(clip=>/wheel-roll/i.test(clip.name));
       if(wheelClip){
+        hasWheelAnimation=true;
         const mixer=new THREE.AnimationMixer(model);
         mixer.clipAction(wheelClip).play();
         mixers.push(mixer);
@@ -329,14 +331,15 @@ export async function createWorld(scene){
     }
     const wheels=[];
     root.traverse(node=>{if(node.name&&/wheel/i.test(node.name))wheels.push(node);});
-    cars.push({root,axis,lane,direction,speed:rand(7.5,12.5),wheels,animated:!!template});
+    cars.push({root,axis,lane,direction,speed:rand(7.5,12.5),wheels,animated:hasWheelAnimation});
   }
   function addFallbackTraffic(){
     for(let i=0;i<12;i++){
       const axis=i%2===0?'x':'z',direction=i%3===0?-1:1;
       const lane=((i%7)-3)*GRID+(i%4<2?-4.3:4.3),position=rand(-215,215);
       const root=fallbackCar(scene,axis,lane,position,direction,palette[i%palette.length]);
-      cars.push({root,axis,lane,direction,speed:rand(7.5,12.5),wheels:[]});
+      const wheels=[];root.traverse(node=>{if(node.name==='wheel')wheels.push(node);});
+      cars.push({root,axis,lane,direction,speed:rand(7.5,12.5),wheels,animated:false});
     }
   }
   const loader=new GLTFLoader();
