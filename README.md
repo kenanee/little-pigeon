@@ -1,48 +1,79 @@
-# 🐦 Little Pigeon
+# 🐦 Little Pigeon — City Escape
 
-**Little Pigeon** est un prototype de jeu 3D de poursuite dans une grande ville, jouable directement dans un navigateur.
+**Little Pigeon** est un jeu de poursuite en 3D dans une ville inspirée de Manhattan. Le joueur pilote un pigeon personnalisable, récupère des pièces et tente d'échapper aux pilons de poulet frits.
 
-## Jouer en local
+## Lancer le jeu en local
 
-1. Télécharge le dépôt depuis GitHub avec **Code → Download ZIP**, puis décompresse-le.
-2. Ouvre le dossier et double-clique sur `index.html`.
-3. Le jeu charge Three.js depuis jsDelivr : une connexion Internet est donc nécessaire.
+Le jeu utilise des modules JavaScript ES et importe Three.js. Il faut donc le lancer avec un serveur local ; le double-clic sur `index.html` peut être bloqué par le navigateur.
 
-Pour un serveur local (recommandé), ouvre un terminal dans le dossier et lance :
+### Option A — Python (simple)
+
+1. Télécharge le dépôt avec **Code → Download ZIP**, puis décompresse-le.
+2. Ouvre un terminal dans le dossier `little-pigeon`.
+3. Lance :
 
 ```bash
 python -m http.server 8000
 ```
 
-Puis ouvre **http://localhost:8000** dans ton navigateur.
+4. Ouvre **http://localhost:8000** dans Chrome, Edge ou Firefox.
+
+### Option B — VS Code
+
+Ouvre le dossier dans VS Code, installe l'extension **Live Server**, puis clique sur **Go Live**.
+
+Une connexion Internet est nécessaire pour charger Three.js et le modèle 3D de voiture CC0. Si le modèle de voiture n'est pas disponible, un véhicule de secours généré par le jeu est utilisé.
 
 ## Commandes
 
-- **ZQSD / WASD** ou **flèches** : déplacer le pigeon
-- **Espace** ou **Maj** : boost
-- **Échap** : pause
-- Sur téléphone : boutons de déplacement et boost à l'écran
+| Action | Clavier |
+|---|---|
+| Avancer | **Z** (AZERTY) ou **W** (QWERTY) / ↑ |
+| Reculer | **S** / ↓ |
+| Aller à gauche | **Q** ou **A** / ← |
+| Aller à droite | **D** / → |
+| Boost | **Espace** ou **Maj** |
+| Pause | **Échap** |
 
-## Ce qui est inclus
+Sur téléphone, les boutons tactiles apparaissent pendant la partie.
 
-- Ville 3D procédurale avec immeubles, gratte-ciels, rues, fenêtres et circulation.
-- Cycle jour / soir / nuit et éclairage dynamique.
-- Pigeon 3D personnalisable et nom modifiable.
+## Fonctionnalités
+
+- Ville 3D procédurale inspirée de Manhattan : immeubles en brique, façades vitrées, fenêtres, escaliers de secours, arbres, feux de circulation, lampadaires, trottoirs et avenues.
+- Voitures 3D avec modèle GLB réaliste CC0 chargé depuis 3DAssets.dev ; voitures de secours si le CDN est indisponible.
+- Pigeon personnalisé avec silhouette profilée, cou irisé, bec, yeux, pattes, queue et ailes à plumes superposées.
 - Cinq skins : Commun, Neige (rare), Rouge-pigeon (légendaire), Ailes de dragon (mythique) et Multicolore (divin).
-- Pièces, score, vies, boost, poursuivants en forme de cuisses de poulet et boutique.
-- Progression locale sauvegardée dans le navigateur.
-- Commandes tactiles sur mobile.
+- Poursuivants en forme de pilons frits, pièces à collectionner, score, boost et trois vies.
+- Cycle jour / soir / nuit, éclairage dynamique et ciel étoilé.
+- Ambiance musicale originale générée avec Web Audio ; elle s'active avec le bouton **SON** pendant la partie.
+- Progression locale sauvegardée dans le navigateur : nom, pièces et skins débloqués.
 
-## Publier avec GitHub Pages
+## Structure du projet
 
-1. Dans le dépôt GitHub, ouvre **Settings → Pages**.
+```text
+little-pigeon/
+├── index.html          # Interface et points d'entrée
+├── styles.css          # Styles de l'interface
+├── src/
+│   ├── main.js         # Boucle de jeu, commandes, collisions et HUD
+│   ├── world.js        # Ville, circulation, éclairage et pièces
+│   ├── pigeon.js       # Modèle 3D du pigeon et plumes
+│   ├── chicken.js      # Modèle 3D des pilons poursuivants
+│   └── audio.js        # Musique d'ambiance et effets sonores
+└── README.md
+```
+
+## Publier sur GitHub Pages
+
+1. Dans le dépôt, ouvre **Settings → Pages**.
 2. Dans **Build and deployment**, choisis **Deploy from a branch**.
 3. Choisis la branche **main** et le dossier **/(root)**, puis clique sur **Save**.
-4. Attends la fin du déploiement affiché dans l'onglet Actions. GitHub Pages affichera l'adresse publique du site dans Settings → Pages.
+4. Après le déploiement, GitHub affichera l'adresse du jeu dans **Settings → Pages**.
 
-## Notes techniques
+## Ressources 3D et limites du prototype
 
-- Aucun outil de compilation ni installation de dépendances n'est nécessaire.
-- Three.js 0.160.0 est importé depuis jsDelivr via un import map.
-- Les graphismes sont générés avec des formes 3D dans le navigateur : c'est une base de prototype, pas encore un monde photoréaliste ou un jeu multijoueur.
-- Les pièces et apparences sont sauvegardées localement dans le navigateur du joueur.
+La voiture utilise un modèle GLB externe de 3DAssets.dev, publié sous **CC0 1.0**. Les façades, la ville, le pigeon et les pilons sont construits par le code du jeu ; les textures de façades et de chaussée sont générées dans le navigateur. La musique est également générée à partir d'oscillateurs Web Audio et ne contient pas de morceau commercial.
+
+Ce prototype possède des modèles et une scène 3D plus détaillés que la première version, mais il ne s'agit pas encore d'un jeu photoréaliste de production : le pigeon et les pilons sont des modèles procéduraux, sans squelette Blender ni capture de mouvement. Les prochaines étapes possibles sont un modèle de pigeon riggé, des animations de vol et de course, des matériaux PBR de façades et des effets de circulation plus poussés.
+
+Voir [ASSET_CREDITS.md](./ASSET_CREDITS.md) pour les liens et licences.
