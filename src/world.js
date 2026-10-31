@@ -300,12 +300,12 @@ export async function createWorld(scene){
   }
   for(let i=0;i<52;i++){
     const p=streetPoint();const mesh=new THREE.Mesh(coinGeo,coinMat);
-    mesh.rotation.x=Math.PI/2;mesh.position.set(p.x,5.6,p.z);mesh.castShadow=true;scene.add(mesh);
+    mesh.rotation.x=Math.PI/2;mesh.position.set(p.x,2.2,p.z);mesh.castShadow=true;scene.add(mesh);
     coins.push({mesh,phase:Math.random()*Math.PI*2,respawn:0});
   }
 
   // Dense traffic uses instanced meshes: five draw calls for an entire fleet.
-  // 120 lightweight vehicles keep the avenues lively without cloning heavy GLB scenes.
+  // 144 lightweight vehicles keep the avenues lively without cloning heavy GLB scenes.
   const cars=[];
   const trafficCount=144;
   const carPalette=[0xd9dce0,0x263d50,0xb73c32,0xd3a64d,0x7b898c,0xe4e2d9,0x343a40,0x47745b,0x8f789e,0xc5a67c];
