@@ -229,7 +229,7 @@ window.addEventListener('pointermove',event=>{
 });
 window.addEventListener('blur',()=>{mouseSteer={x:0,y:0};if(gameState==='playing')pauseGame();});
 
-document.querySelectorAll('.dpad button').forEach(button=>{
+document.querySelectorAll('.dpad button, .lift-pad button').forEach(button=>{
   const key=button.dataset.key;
   const down=e=>{e.preventDefault();keys[key]=true;};
   const up=e=>{e.preventDefault();keys[key]=false;};
