@@ -117,7 +117,7 @@ function updateSkinShop(){
     const card=document.createElement('button');
     card.type='button';card.className='skin-card'+(selectedSkin===skin.id?' selected':'');
     card.style.setProperty('--accent',skin.accent);
-    card.innerHTML='<span class="skin-price">'+(owned?(selectedSkin===skin.id?'ÉQUIPÉ':'POSSÉDÉ'):fmt(skin.price)+' 🪙')+'</span><div class="skin-row"><span class="skin-avatar">🐦</span><span><b>'+skin.name+'</b><small>'+skin.rarity+'</small></span></div>';
+    card.innerHTML='<span class="skin-price">'+(owned?(selectedSkin===skin.id?'ÉQUIPÉ':'POSSÉDÉ'):fmt(skin.price)+' 🪙')+'</span><div class="skin-row"><span class="skin-avatar">🦈</span><span><b>'+skin.name+'</b><small>'+skin.rarity+'</small></span></div>';
     card.addEventListener('click',()=>{
       if(!unlocked.includes(skin.id)){
         if(wallet<skin.price){toast('Il te manque des perles pour ce skin.');return;}
@@ -162,7 +162,9 @@ function setMode(next){
 }
 function resetCoins(){
   for(const coin of world.coins){
-    coin.mesh.position.set((Math.random()-.5)*440,rand(-6,25),(Math.random()-.5)*440);
+    const y=rand(-6,25);
+    coin.baseY=y;
+    coin.mesh.position.set((Math.random()-.5)*440,y,(Math.random()-.5)*440);
     coin.mesh.visible=true;coin.respawn=0;
   }
 }
@@ -268,12 +270,12 @@ function updatePlayer(dt){
   }
 }
 function updateCamera(dt){
-  const flight=shark.userData.state;
-  const forward=new THREE.Vector3(Math.sin(flight.h),0,Math.cos(flight.h));
-  const focus=playerPosition.clone().add(new THREE.Vector3(0,1.65,0));
-  const desired=focus.clone().addScaledVector(forward,-13.5).add(new THREE.Vector3(0,5.5+Math.min(flight.y*.09,2.8),0));
-  camera.position.lerp(desired,1-Math.exp(-3.5*dt));
-  const look=focus.clone().addScaledVector(forward,5.5).add(new THREE.Vector3(0,-flight.pitch*2.2,0));
+  const swim=shark.userData.state;
+  const forward=new THREE.Vector3(Math.sin(swim.h),0,Math.cos(swim.h));
+  const focus=playerPosition.clone().add(new THREE.Vector3(0,.45,0));
+  const desired=focus.clone().addScaledVector(forward,-15.5).add(new THREE.Vector3(0,4.2,0));
+  camera.position.lerp(desired,1-Math.exp(-3.2*dt));
+  const look=focus.clone().addScaledVector(forward,6.5).add(new THREE.Vector3(0,-swim.pitch*1.8,0));
   camera.lookAt(look);
 }
 function updateEnemies(dt){
