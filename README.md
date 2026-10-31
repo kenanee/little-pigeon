@@ -43,7 +43,7 @@ Sur téléphone, les boutons tactiles apparaissent pendant la partie.
 ## Structure du projet
 
 ```text
-deep-escape/
+little-pigeon/
 ├── index.html
 ├── styles.css
 ├── src/
