@@ -279,7 +279,7 @@ export async function createWorld(scene){
   const hemi=new THREE.HemisphereLight(0xd7e9f5,0x65574a,1.1);scene.add(hemi);
   const sun=new THREE.DirectionalLight(0xffe7c4,2.25);
   sun.position.set(-90,125,80);sun.castShadow=true;
-  sun.shadow.mapSize.set(2048,2048);
+  sun.shadow.mapSize.set(1024,1024);
   sun.shadow.camera.left=-145;sun.shadow.camera.right=145;sun.shadow.camera.top=145;sun.shadow.camera.bottom=-145;
   sun.shadow.camera.near=1;sun.shadow.camera.far=340;sun.shadow.bias=-0.00018;scene.add(sun);
   const fill=new THREE.DirectionalLight(0x93bfe2,.35);fill.position.set(65,42,-90);scene.add(fill);
