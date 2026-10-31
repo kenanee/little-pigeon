@@ -49,11 +49,19 @@ await Promise.race([world.ready,new Promise(resolve=>setTimeout(resolve,9000))])
 $('loading').classList.add('done');
 setTimeout(()=>$('loading').remove(),700);
 
-const pigeonRoot=new THREE.Group();
-scene.add(pigeonRoot);
-let pigeon=createPigeon(selectedSkin,pigeonName);
-pigeonRoot.add(pigeon);
-pigeonRoot.position.set(0,5.7,0);
+const skinPalettes={
+  common:{},
+  white:{head:'#e9edf0',body:'#f0f2f5',breast:'#ffffff',neckA:'#a8d5d7',neckB:'#e5f0f1',wing:'#f4f6f7',primary:'#c7d0d8',bar:'#e8edf1',band:'#d8e0e7',rump:'#ffffff',tail:'#e0e7eb',beak:'#49443e',cere:'#f7f2eb',ring:'#bf8065',eye:'#d69a4b',pupil:'#08090a',feet:'#d17c89'},
+  red:{head:'#8e3444',body:'#b94955',breast:'#d17b80',neckA:'#b75d78',neckB:'#633d65',wing:'#d47c85',primary:'#79313f',bar:'#3d1d2a',band:'#3d1d2a',rump:'#f0d9d8',tail:'#8b3d4e',eye:'#f2b15e'},
+  dragon:{head:'#2e496e',body:'#3b6680',breast:'#b9d1d8',neckA:'#36b9a4',neckB:'#4365b1',wing:'#46bcae',primary:'#20384c',bar:'#142332',band:'#172a3b',rump:'#6a9ba8',tail:'#287b8c',eye:'#ffcf72'},
+  divine:{head:'#e9dff1',body:'#c8b6e8',breast:'#fff1f8',neckA:'#70d8c3',neckB:'#e78ac5',wing:'#f39dce',primary:'#6fd3d0',bar:'#9d81d3',band:'#f4cb71',rump:'#ffffff',tail:'#b7a2e8',eye:'#ffce6b'}
+};
+function buildPigeon(){
+  return createPigeon({colors:skinPalettes[selectedSkin]||{},name:pigeonName,scale:1});
+}
+let pigeon=buildPigeon();
+scene.add(pigeon);
+let playerPosition=pigeon.position;
 pigeon.visible=true;
 
 const enemies=[];
@@ -76,7 +84,7 @@ let dayClock=0;
 let toastClock=0;
 let hudClock=0;
 let lastFrame=performance.now();
-const playerPosition=pigeonRoot.position;
+
 let mouseSteer={x:0,y:0};
 let heading=0,turnVelocity=0,altitude=0,verticalVelocity=0,forwardSpeed=0,flightPitch=0,flightRoll=0,flying=false;
 
@@ -122,9 +130,14 @@ function updateSkinShop(){
   }
 }
 function replacePigeon(){
-  if(pigeon)pigeonRoot.remove(pigeon);
-  pigeon=createPigeon(selectedSkin,pigeonName);
-  pigeonRoot.add(pigeon);
+  const oldPosition=pigeon.position.clone();
+  const oldRotation=pigeon.rotation.clone();
+  if(pigeon)scene.remove(pigeon);
+  pigeon=buildPigeon();
+  scene.add(pigeon);
+  pigeon.position.copy(oldPosition);
+  pigeon.rotation.copy(oldRotation);
+  playerPosition=pigeon.position;
   pigeon.visible=true;
 }
 function setPigeonName(value){
@@ -140,6 +153,7 @@ updateSkinShop();updateWallet();
 
 function setMode(next){
   gameState=next;
+  if(next!=='playing')mouseSteer={x:0,y:0};
   $('main-menu').hidden=next!=='menu';
   $('pause-screen').hidden=next!=='paused';
   $('gameover-screen').hidden=next!=='gameover';
@@ -150,19 +164,20 @@ function setMode(next){
 function resetCoins(){
   for(const coin of world.coins){
     const n=Math.round(Math.random()*8)-4;
-    if(Math.random()<.5)coin.mesh.position.set((Math.random()-.5)*430,5.6,n*50+(Math.random()-.5)*8);
-    else coin.mesh.position.set(n*50+(Math.random()-.5)*8,5.6,(Math.random()-.5)*430);
+    if(Math.random()<.5)coin.mesh.position.set((Math.random()-.5)*430,2.2,n*50+(Math.random()-.5)*8);
+    else coin.mesh.position.set(n*50+(Math.random()-.5)*8,2.2,(Math.random()-.5)*430);
     coin.mesh.visible=true;coin.respawn=0;
   }
 }
 function startGame(){
   setPigeonName($('pigeon-name').value);
   score=0;elapsed=0;health=3;boost=100;invulnerable=0;
-  heading=0;turnVelocity=0;altitude=0;verticalVelocity=0;forwardSpeed=0;flightPitch=0;flightRoll=0;flying=false;mouseSteer={x:0,y:0};
-  pigeonRoot.position.set(0,5.7,0);pigeonRoot.rotation.set(0,0,0);
+  mouseSteer={x:0,y:0};
+  playerPosition.set(0,0,0);pigeon.rotation.set(0,0,0);
+  Object.assign(pigeon.userData.state,{air:false,y:0,vy:0,sp:0,h:0,b:0,o:0,ph:0,gp:0,t:0,tk:0,pitch:0,roll:0});
   pigeon.visible=true;
   enemies.forEach((enemy,i)=>{
-    enemy.position.set(i===0?-9:9,5.1,i===0?-25:-39);
+    enemy.position.set(i===0?-9:9,0,i===0?-25:-39);
     enemy.rotation.set(0,0,0);enemy.visible=true;
   });
   resetCoins();updateHUD();setMode('playing');
@@ -233,79 +248,35 @@ function deadzone(value,zone=.08){
   return a<zone?0:Math.sign(value)*(a-zone)/(1-zone);
 }
 function updatePlayer(dt){
-  // AZERTY and arrows remain available; mouse position provides analog 3D steering.
-  const keyTurn=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyQ||keys.KeyA||keys.ArrowLeft?1:0);
-  const fwd=(keys.KeyZ||keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0);
-  const mouseX=deadzone(mouseSteer.x);
-  const mouseLift=-deadzone(mouseSteer.y);
-  const lift=clamp(mouseLift+(keys.KeyE?1:0)-(keys.KeyC||keys.ShiftLeft||keys.ShiftRight?1:0),-1,1);
-  const turnTarget=clamp(keyTurn+mouseX*.95,-1,1);
+  // Mouse X steers yaw; mouse Y climbs or dives. ZQSD remains available.
+  const left=keys.KeyQ||keys.KeyA||keys.ArrowLeft;
+  const right=keys.KeyD||keys.ArrowRight;
+  const forward=keys.KeyZ||keys.KeyW||keys.ArrowUp;
+  const backward=keys.KeyS||keys.ArrowDown;
+  const keyTurn=(right?1:0)-(left?1:0);
+  const lift=clamp(-deadzone(mouseSteer.y)+(keys.KeyE?1:0)-(keys.KeyC||keys.ShiftLeft||keys.ShiftRight?1:0),-1,1);
   const skin=skins.find(s=>s.id===selectedSkin)||skins[0];
   const boosting=keys.Space&&boost>1;
-
-  // Take off with E or by moving the mouse upward.
-  if(!flying&&(keys.KeyE||lift>.28)){
-    flying=true;altitude=Math.max(altitude,.25);verticalVelocity=2.5;
-    toast('Décollage ! Utilise la souris pour piloter.');
-  }
-
-  // Both yaw and altitude use damped velocities, not instant direction changes.
-  turnVelocity+=(turnTarget*(flying?1.28:1.8)-turnVelocity)*(1-Math.exp(-5.2*dt));
-  heading+=turnVelocity*dt;
-
-  if(flying){
-    const baseCruise=9.2*skin.speed;
-    const targetSpeed=Math.max(3.2,baseCruise+fwd*3.1)*(boosting?1.58*skin.boost:1);
-    forwardSpeed+=(targetSpeed-forwardSpeed)*(1-Math.exp(-2.8*dt));
-    const targetVerticalSpeed=lift*5.6;
-    verticalVelocity+=(targetVerticalSpeed-verticalVelocity)*(1-Math.exp(-2.7*dt));
-    altitude+=verticalVelocity*dt;
-    if(altitude>36){altitude=36;verticalVelocity=Math.min(0,verticalVelocity);}
-    if(altitude<=0&&verticalVelocity<0){
-      altitude=0;verticalVelocity=0;flying=false;
-      forwardSpeed=Math.min(forwardSpeed,5.2);
-      toast('Atterrissage');
-    }
-  }else{
-    const targetSpeed=fwd*5.0*skin.speed;
-    forwardSpeed+=(targetSpeed-forwardSpeed)*(1-Math.exp(-4.6*dt));
-    altitude=0;verticalVelocity=0;
-    if(boosting&&Math.abs(forwardSpeed)>.2)forwardSpeed*=1.015;
-  }
-
-  const dx=Math.sin(heading)*forwardSpeed*dt;
-  const dz=Math.cos(heading)*forwardSpeed*dt;
-  playerPosition.x=clamp(playerPosition.x+dx,-235,235);
-  playerPosition.z=clamp(playerPosition.z+dz,-235,235);
-  const bob=flying?Math.sin(elapsed*7)*.055:Math.abs(Math.sin(elapsed*8))*Math.min(.12,Math.abs(forwardSpeed)*.018);
-  playerPosition.y=5.65+altitude+bob;
-
-  const desiredPitch=clamp(-verticalVelocity*.065,-.38,.38);
-  flightPitch+=(desiredPitch-flightPitch)*(1-Math.exp(-4.5*dt));
-  const desiredRoll=clamp(-turnVelocity*.28,-.42,.42);
-  flightRoll+=(desiredRoll-flightRoll)*(1-Math.exp(-4.0*dt));
-  pigeonRoot.rotation.order='YXZ';
-  pigeonRoot.rotation.set(flightPitch,heading,flightRoll);
-
-  const flap=flying
-    ?Math.sin(elapsed*(boosting?19:12))*(boosting?.86:.58)
-    :Math.sin(elapsed*8)*Math.min(.22,Math.abs(forwardSpeed)*.045);
-  pigeon.userData.wings[0].rotation.z=-flap;
-  pigeon.userData.wings[1].rotation.z=flap;
-
+  pigeon.userData.control({
+    fwd:(forward?1:0)-(backward?1:0),
+    turn:clamp(keyTurn+deadzone(mouseSteer.x)*.95,-1,1),
+    lift,up:keys.KeyE,down:keys.KeyC||keys.ShiftLeft||keys.ShiftRight,
+    boost:boosting,speedMultiplier:skin.speed,boostMultiplier:skin.boost
+  },dt);
+  if(boosting)boost=Math.max(0,boost-36*dt/skin.boost);
+  else boost=Math.min(100,boost+17*dt);
   if(invulnerable>0){
     invulnerable-=dt;pigeon.visible=Math.floor(elapsed*14)%2===0;
     if(invulnerable<=0)pigeon.visible=true;
   }
-  if(boosting){boost=Math.max(0,boost-36*dt/skin.boost);if(Math.random()<.018)audio.boost();}
-  else boost=Math.min(100,boost+17*dt);
 }
 function updateCamera(dt){
-  const forward=new THREE.Vector3(Math.sin(heading),0,Math.cos(heading));
-  const focus=playerPosition.clone().add(new THREE.Vector3(0,1.3,0));
-  const desired=focus.clone().addScaledVector(forward,-16.5).add(new THREE.Vector3(0,7.0+Math.min(altitude*.12,3.5),0));
-  camera.position.lerp(desired,1-Math.exp(-3.1*dt));
-  const look=focus.clone().addScaledVector(forward,6.5).add(new THREE.Vector3(0,flightPitch*2.2,0));
+  const flight=pigeon.userData.state;
+  const forward=new THREE.Vector3(Math.sin(flight.h),0,Math.cos(flight.h));
+  const focus=playerPosition.clone().add(new THREE.Vector3(0,1.65,0));
+  const desired=focus.clone().addScaledVector(forward,-13.5).add(new THREE.Vector3(0,5.5+Math.min(flight.y*.09,2.8),0));
+  camera.position.lerp(desired,1-Math.exp(-3.5*dt));
+  const look=focus.clone().addScaledVector(forward,5.5).add(new THREE.Vector3(0,-flight.pitch*2.2,0));
   camera.lookAt(look);
 }
 function updateEnemies(dt){
@@ -316,10 +287,10 @@ function updateEnemies(dt){
     const speed=7.1+Math.min(elapsed*.012,2);
     enemy.position.x+=dx/dist*speed*dt;
     enemy.position.z+=dz/dist*speed*dt;
-    enemy.position.y=5.1+Math.sin(elapsed*3.5+index)*.17;
+    enemy.position.y=.04+Math.sin(elapsed*3.5+index)*.04;
     enemy.rotation.y=Math.atan2(dx,dz);
     enemy.userData.update(elapsed);
-    if(dist<2.45&&Math.abs(playerPosition.y-enemy.position.y)<3.0){
+    if(dist<2.45&&Math.abs(playerPosition.y-enemy.position.y)<2.7){
       hitPlayer();
       const push= index===0?-1:1;
       enemy.position.x=clamp(playerPosition.x+push*22,-220,220);
@@ -333,7 +304,7 @@ function collectCoins(){
     const dx=coin.mesh.position.x-playerPosition.x;
     const dz=coin.mesh.position.z-playerPosition.z;
     const dy=coin.mesh.position.y-playerPosition.y;
-    if(dx*dx+dz*dz<4.5&&Math.abs(dy)<2.7){
+    if(dx*dx+dz*dz<4.5&&Math.abs(dy)<2.8){
       coin.mesh.visible=false;coin.respawn=rand(5,9);
       score+=50;wallet+=5;persist();updateWallet();
       audio.pickup();toast('+50 points  ·  +5 pièces');
@@ -359,12 +330,11 @@ function animate(now){
     hudClock+=dt;
     if(hudClock>.12){updateHUD();hudClock=0;}
   }else if(gameState==='menu'){
-    pigeonRoot.position.y=5.7+Math.sin(now*.0008)*.12;
+    pigeon.position.y=0;
     pigeon.rotation.y=Math.sin(now*.00015)*.08;
-    pigeon.userData.wings[0].rotation.z=Math.sin(now*.003)*.12;
-    pigeon.userData.wings[1].rotation.z=-Math.sin(now*.003)*.12;
-    camera.position.lerp(new THREE.Vector3(Math.sin(now*.0001)*7,12,-22),.014);
-    camera.lookAt(0,7,12);
+    pigeon.userData.setWings(0,Math.sin(now*.0018)*.10,0);
+    camera.position.lerp(new THREE.Vector3(Math.sin(now*.0001)*7,5.8,-11),.014);
+    camera.lookAt(0,1.6,0);
   }
   $('day-label').textContent=label;
   if(toastClock>0){toastClock-=dt;if(toastClock<=0)$('toast').classList.remove('show');}
