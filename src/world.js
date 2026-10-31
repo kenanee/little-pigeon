@@ -308,7 +308,7 @@ export async function createWorld(scene){
   // Dense traffic uses instanced meshes: five draw calls for an entire fleet.
   // 120 lightweight vehicles keep the avenues lively without cloning heavy GLB scenes.
   const cars=[];
-  const trafficCount=120;
+  const trafficCount=144;
   const carPalette=[0xd9dce0,0x263d50,0xb73c32,0xd3a64d,0x7b898c,0xe4e2d9,0x343a40,0x47745b,0x8f789e,0xc5a67c];
   const carBodyMat=new THREE.MeshStandardMaterial({color:0xffffff,metalness:.38,roughness:.42});
   const carGlassMat=new THREE.MeshStandardMaterial({color:0x203748,metalness:.26,roughness:.24});
@@ -325,9 +325,10 @@ export async function createWorld(scene){
   const headFleet=new THREE.InstancedMesh(lampGeo,headMat,trafficCount*2);
   const tailFleet=new THREE.InstancedMesh(lampGeo,tailMat,trafficCount*2);
   [bodyFleet,glassFleet,wheelFleet,headFleet,tailFleet].forEach(mesh=>{
-    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(mesh);
   });
+  bodyFleet.castShadow=true;bodyFleet.receiveShadow=true;
+  glassFleet.castShadow=false;wheelFleet.castShadow=false;headFleet.castShadow=false;tailFleet.castShadow=false;
   const dummy=new THREE.Object3D();
   const qYaw=new THREE.Quaternion(),qSpin=new THREE.Quaternion(),qAxle=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,Math.PI/2));
   const wheelOffsets=[[-.98,.43,-1.28],[.98,.43,-1.28],[-.98,.43,1.28],[.98,.43,1.28]];
@@ -353,7 +354,7 @@ export async function createWorld(scene){
       dummy.position.set(x,.72,z);dummy.rotation.set(0,yaw,0);dummy.scale.set(1,1,1);dummy.updateMatrix();
       bodyFleet.setMatrixAt(i,dummy.matrix);
       qYaw.setFromAxisAngle(upAxis,yaw);
-      tempVec.set(0,1.26,-.12).applyQuaternion(qYaw);
+      tempVec.set(0,.55,-.12).applyQuaternion(qYaw);
       dummy.position.set(x+tempVec.x, .72+tempVec.y, z+tempVec.z);
       dummy.quaternion.copy(qYaw);dummy.scale.set(1,1,1);dummy.updateMatrix();
       glassFleet.setMatrixAt(i,dummy.matrix);
