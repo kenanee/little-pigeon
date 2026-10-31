@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const CAR_MODEL_URL='https://cdn.3dassets.dev/assets/32487/v1/model.glb';
 const GRID=50, ROAD_WIDTH=20, LIMIT=238;
@@ -306,94 +305,102 @@ export async function createWorld(scene){
     coins.push({mesh,phase:Math.random()*Math.PI*2,respawn:0});
   }
 
-  // Load the real CC0 city-car GLB; a procedural fallback keeps the game playable offline.
+  // Dense traffic uses instanced meshes: five draw calls for an entire fleet.
+  // 120 lightweight vehicles keep the avenues lively without cloning heavy GLB scenes.
   const cars=[];
-  const palette=[0xd9dce0,0x253c50,0xb73c32,0xd3a64d,0x7b898c,0xe4e2d9,0x343a40,0x47745b];
-  function addTraffic(template,index,animations=[]){
-    const axis=index%2===0?'x':'z';
-    const direction=index%3===0?-1:1;
-    const roadIndex=(index%7)-3;
-    const lane=roadIndex*GRID+(index%4<2?-4.3:4.3);
-    const position=rand(-215,215);
-    let root=new THREE.Group();
-    let hasWheelAnimation=false;
-    if(template){
-      const model=template.clone(true);
-      model.traverse(node=>{
-        if(node.isMesh){node.castShadow=true;node.receiveShadow=true;}
-        if(node.name&&/wheel/i.test(node.name))node.userData.rollingWheel=true;
-      });
-      // Preserve glass and lamps while giving each body a distinct city-car paint colour.
-      let paintApplied=false;
-      model.traverse(node=>{
-        if(!node.isMesh||!node.material)return;
-        const mats=Array.isArray(node.material)?node.material:[node.material];
-        const cloned=mats.map(m=>m.clone());
-        cloned.forEach(m=>{
-          const n=(m.name||'').toLowerCase();
-          if((n.includes('paint')||n.includes('body')||n.includes('car'))&&!paintApplied){m.color.setHex(palette[index%palette.length]);paintApplied=true;}
-        });
-        node.material=Array.isArray(node.material)?cloned:cloned[0];
-      });
-      root.add(model);
-      const wheelClip=animations.find(clip=>/wheel-roll/i.test(clip.name));
-      if(wheelClip){
-        hasWheelAnimation=true;
-        const mixer=new THREE.AnimationMixer(model);
-        mixer.clipAction(wheelClip).play();
-        mixers.push(mixer);
-      }
-    }else{
-      root=fallbackCar(city,axis,lane,position,direction,palette[index%palette.length]);
-    }
-    if(template){
-      root.position.set(axis==='x'?position:lane,0,axis==='z'?position:lane);
-      root.rotation.y=axis==='x'?(direction>0?Math.PI/2:-Math.PI/2):(direction>0?0:Math.PI);
-      scene.add(root);
-    }
-    const wheels=[];
-    root.traverse(node=>{if(node.name&&/wheel/i.test(node.name))wheels.push(node);});
-    cars.push({root,axis,lane,direction,speed:rand(7.5,12.5),wheels,animated:hasWheelAnimation});
-  }
-  function addFallbackTraffic(){
-    for(let i=0;i<12;i++){
-      const axis=i%2===0?'x':'z',direction=i%3===0?-1:1;
-      const lane=((i%7)-3)*GRID+(i%4<2?-4.3:4.3),position=rand(-215,215);
-      const root=fallbackCar(scene,axis,lane,position,direction,palette[i%palette.length]);
-      const wheels=[];root.traverse(node=>{if(node.name==='wheel')wheels.push(node);});
-      cars.push({root,axis,lane,direction,speed:rand(7.5,12.5),wheels,animated:false});
-    }
-  }
-  const loader=new GLTFLoader();
-  const carAssetPromise=loader.loadAsync(CAR_MODEL_URL).then(gltf=>{
-    const template=gltf.scene;
-    for(let i=0;i<12;i++)addTraffic(template,i,gltf.animations||[]);
-    return {loaded:true,count:12};
-  }).catch(error=>{
-    console.warn('Le modèle de voiture CC0 ne peut pas être chargé, utilisation du modèle de secours.',error);
-    addFallbackTraffic();
-    return {loaded:false,count:12};
+  const trafficCount=120;
+  const carPalette=[0xd9dce0,0x263d50,0xb73c32,0xd3a64d,0x7b898c,0xe4e2d9,0x343a40,0x47745b,0x8f789e,0xc5a67c];
+  const carBodyMat=new THREE.MeshStandardMaterial({color:0xffffff,metalness:.38,roughness:.42});
+  const carGlassMat=new THREE.MeshStandardMaterial({color:0x203748,metalness:.26,roughness:.24});
+  const wheelMat=new THREE.MeshStandardMaterial({color:0x14171a,roughness:.94});
+  const headMat=new THREE.MeshStandardMaterial({color:0xfff1c8,emissive:0xffd36e,emissiveIntensity:.08,roughness:.38});
+  const tailMat=new THREE.MeshStandardMaterial({color:0xc52f30,emissive:0x4c0909,emissiveIntensity:.3,roughness:.4});
+  const bodyGeo=new THREE.BoxGeometry(1.92,.78,4.2);
+  const glassGeo=new THREE.BoxGeometry(1.54,.72,2.15);
+  const wheelGeo=new THREE.CylinderGeometry(.32,.32,.22,10);
+  const lampGeo=new THREE.BoxGeometry(.32,.15,.07);
+  const bodyFleet=new THREE.InstancedMesh(bodyGeo,carBodyMat,trafficCount);
+  const glassFleet=new THREE.InstancedMesh(glassGeo,carGlassMat,trafficCount);
+  const wheelFleet=new THREE.InstancedMesh(wheelGeo,wheelMat,trafficCount*4);
+  const headFleet=new THREE.InstancedMesh(lampGeo,headMat,trafficCount*2);
+  const tailFleet=new THREE.InstancedMesh(lampGeo,tailMat,trafficCount*2);
+  [bodyFleet,glassFleet,wheelFleet,headFleet,tailFleet].forEach(mesh=>{
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);
   });
+  const dummy=new THREE.Object3D();
+  const qYaw=new THREE.Quaternion(),qSpin=new THREE.Quaternion(),qAxle=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,Math.PI/2));
+  const wheelOffsets=[[-.98,.43,-1.28],[.98,.43,-1.28],[-.98,.43,1.28],[.98,.43,1.28]];
+  const headOffsets=[[-.62,.78,2.12],[.62,.78,2.12]];
+  const tailOffsets=[[-.62,.78,-2.12],[.62,.78,-2.12]];
+  const tempVec=new THREE.Vector3(),upAxis=new THREE.Vector3(0,1,0);
+  for(let i=0;i<trafficCount;i++){
+    const axis=i%2===0?'x':'z';
+    const road=Math.floor(i/4)%9-4;
+    const laneSide=(Math.floor(i/2)%2===0?-1:1);
+    const direction=laneSide;
+    const lane=road*GRID+laneSide*4.25;
+    const car={axis,lane,direction,speed:rand(8.5,15.5),position:rand(-235,235),phase:rand(0,Math.PI*2),spin:rand(0,Math.PI*2),x:0,z:0};
+    cars.push(car);
+    bodyFleet.setColorAt(i,new THREE.Color(carPalette[i%carPalette.length]));
+  }
+  function composeFleet(){
+    for(let i=0;i<trafficCount;i++){
+      const car=cars[i],yaw=car.axis==='x'?(car.direction>0?Math.PI/2:-Math.PI/2):(car.direction>0?0:Math.PI);
+      const x=car.axis==='x'?car.position:car.lane;
+      const z=car.axis==='z'?car.position:car.lane;
+      car.x=x;car.z=z;
+      dummy.position.set(x,.72,z);dummy.rotation.set(0,yaw,0);dummy.scale.set(1,1,1);dummy.updateMatrix();
+      bodyFleet.setMatrixAt(i,dummy.matrix);
+      qYaw.setFromAxisAngle(upAxis,yaw);
+      tempVec.set(0,1.26,-.12).applyQuaternion(qYaw);
+      dummy.position.set(x+tempVec.x, .72+tempVec.y, z+tempVec.z);
+      dummy.quaternion.copy(qYaw);dummy.scale.set(1,1,1);dummy.updateMatrix();
+      glassFleet.setMatrixAt(i,dummy.matrix);
 
-  const mixers=[];
+      for(let w=0;w<4;w++){
+        tempVec.set(...wheelOffsets[w]).applyQuaternion(qYaw);
+        dummy.position.set(x+tempVec.x,tempVec.y,z+tempVec.z);
+        const spinQ=qSpin.setFromAxisAngle(new THREE.Vector3(0,1,0),car.spin);
+        dummy.quaternion.copy(qYaw).multiply(spinQ).multiply(qAxle);
+        dummy.scale.set(1,1,1);dummy.updateMatrix();
+        wheelFleet.setMatrixAt(i*4+w,dummy.matrix);
+      }
+      for(let k=0;k<2;k++){
+        tempVec.set(...headOffsets[k]).applyQuaternion(qYaw);
+        dummy.position.set(x+tempVec.x,tempVec.y,z+tempVec.z);
+        dummy.quaternion.copy(qYaw);dummy.scale.set(1,1,1);dummy.updateMatrix();
+        headFleet.setMatrixAt(i*2+k,dummy.matrix);
+        tempVec.set(...tailOffsets[k]).applyQuaternion(qYaw);
+        dummy.position.set(x+tempVec.x,tempVec.y,z+tempVec.z);
+        dummy.quaternion.copy(qYaw);dummy.scale.set(1,1,1);dummy.updateMatrix();
+        tailFleet.setMatrixAt(i*2+k,dummy.matrix);
+      }
+    }
+    bodyFleet.instanceMatrix.needsUpdate=true;
+    glassFleet.instanceMatrix.needsUpdate=true;
+    wheelFleet.instanceMatrix.needsUpdate=true;
+    headFleet.instanceMatrix.needsUpdate=true;
+    tailFleet.instanceMatrix.needsUpdate=true;
+  }
+  composeFleet();
   function update(dt,time){
     for(const car of cars){
-      const p=car.root.position;
-      if(car.axis==='x'){
-        p.x+=car.direction*car.speed*dt;
-        if(p.x>LIMIT)p.x=-LIMIT;if(p.x<-LIMIT)p.x=LIMIT;
-      }else{
-        p.z+=car.direction*car.speed*dt;
-        if(p.z>LIMIT)p.z=-LIMIT;if(p.z<-LIMIT)p.z=LIMIT;
-      }
-      if(!car.animated)for(const wheel of car.wheels)wheel.rotation.x+=car.direction*car.speed*dt/.34;
+      car.position+=car.direction*car.speed*dt;
+      if(car.position>LIMIT+14)car.position=-LIMIT-14;
+      if(car.position<-LIMIT-14)car.position=LIMIT+14;
+      car.spin+=car.direction*car.speed*dt/.32;
+      car.phase+=dt;
     }
-    for(const mixer of mixers)mixer.update(dt);
+    composeFleet();
     for(const coin of coins){
       coin.phase+=dt*2.1;
       coin.mesh.rotation.z+=dt*1.7;
       coin.mesh.position.y=5.5+Math.sin(coin.phase)*.2;
-      if(coin.respawn>0){coin.respawn-=dt;if(coin.respawn<=0){const p=streetPoint();coin.mesh.position.set(p.x,5.6,p.z);coin.mesh.visible=true;}}
+      if(coin.respawn>0){
+        coin.respawn-=dt;
+        if(coin.respawn<=0){const p=streetPoint();coin.mesh.position.set(p.x,5.6,p.z);coin.mesh.visible=true;}
+      }
     }
   }
   function updateLighting(daylight){
@@ -405,7 +412,7 @@ export async function createWorld(scene){
     return daylight>.68?'JOUR':daylight>.34?'SOIR':'NUIT';
   }
 
-  return {coins,cars,hemi,sun,fill,stars,skyDay,skyNight,ready:carAssetPromise,update,updateLighting};
+  return {coins,cars,hemi,sun,fill,stars,skyDay,skyNight,ready:Promise.resolve({loaded:true,count:trafficCount}),update,updateLighting};
 }
 
 function rand(min,max){return min+Math.random()*(max-min);}
