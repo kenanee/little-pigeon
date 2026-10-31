@@ -204,7 +204,7 @@ export function createPigeon(skinId='common',displayName='Pico'){
     const f=i-3;
     const color=i===0||i===6?palette.flight:palette.cover;
     const feather=new THREE.Mesh(tailGeometry,new THREE.MeshStandardMaterial({color,roughness:0.86,side:THREE.DoubleSide}));
-    feather.rotation.y=-Math.PI/2;
+    feather.rotation.y=Math.PI/2;
     feather.rotation.x=f*0.055;
     feather.rotation.z=f*0.07;
     feather.position.set(f*0.09,0,-f*f*0.012);
