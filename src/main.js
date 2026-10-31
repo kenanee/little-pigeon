@@ -44,8 +44,8 @@ renderer.toneMappingExposure=1.15;
 $('scene').appendChild(renderer.domElement);
 
 const world=await createWorld(scene);
-$('loading-text').textContent='Chargement des voitures 3D…';
-await Promise.race([world.ready,new Promise(resolve=>setTimeout(resolve,9000))]);
+$('loading-text').textContent='Finalisation de la ville et du trafic…';
+await world.ready;
 $('loading').classList.add('done');
 setTimeout(()=>$('loading').remove(),700);
 
@@ -86,7 +86,6 @@ let hudClock=0;
 let lastFrame=performance.now();
 
 let mouseSteer={x:0,y:0};
-let heading=0,turnVelocity=0,altitude=0,verticalVelocity=0,forwardSpeed=0,flightPitch=0,flightRoll=0,flying=false;
 
 function persist(){
   write('lp-wallet',wallet);write('lp-unlocked',unlocked);
@@ -298,6 +297,19 @@ function updateEnemies(dt){
     }
   });
 }
+function updateTrafficCollisions(){
+  if(playerPosition.y>1.35)return;
+  for(const car of world.cars){
+    const dx=car.x-playerPosition.x,dz=car.z-playerPosition.z;
+    if(dx*dx+dz*dz<4.3){
+      hitPlayer();
+      const state=pigeon.userData.state;
+      state.air=true;state.y=.7;state.vy=2.4;
+      playerPosition.y=.7;
+      break;
+    }
+  }
+}
 function collectCoins(){
   for(const coin of world.coins){
     if(!coin.mesh.visible)continue;
@@ -326,7 +338,7 @@ function animate(now){
   audio.update();
   if(gameState==='playing'){
     elapsed+=dt;score+=dt*2;
-    updatePlayer(dt);updateEnemies(dt);collectCoins();updateCamera(dt);
+    updatePlayer(dt);updateEnemies(dt);updateTrafficCollisions();collectCoins();updateCamera(dt);
     hudClock+=dt;
     if(hudClock>.12){updateHUD();hudClock=0;}
   }else if(gameState==='menu'){
