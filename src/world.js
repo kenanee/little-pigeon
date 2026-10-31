@@ -190,6 +190,11 @@ export async function createWorld(scene){
   };
   makePlane(city,520,520,0,0,new THREE.MeshStandardMaterial({color:0x5f665d,roughness:1}),-.2);
   const roads=[];
+  const markerCount=9*29;
+  const markerAlongX=new THREE.InstancedMesh(new THREE.BoxGeometry(7,.018,.13),lineMat,markerCount);
+  const markerAlongZ=new THREE.InstancedMesh(new THREE.BoxGeometry(.13,.018,7),lineMat,markerCount);
+  const markerDummy=new THREE.Object3D();
+  let markerXIndex=0,markerZIndex=0;
   for(let i=-4;i<=4;i++){
     const n=i*GRID;
     makePlane(city,520,ROAD_WIDTH,0,n,roadMat,.005);
@@ -199,22 +204,39 @@ export async function createWorld(scene){
     makePlane(city,2.1,520,n+10.9,0,sidewalkMat,.019);
     makePlane(city,2.1,520,n-10.9,0,sidewalkMat,.019);
     for(let p=-250;p<260;p+=18){
-      addBox(city,7,.018,.13,p,.028,n,lineMat,false);
-      addBox(city,.13,.018,7,n,.029,p,lineMat,false);
+      markerDummy.position.set(p,.028,n);markerDummy.rotation.set(0,0,0);markerDummy.updateMatrix();
+      markerAlongX.setMatrixAt(markerXIndex++,markerDummy.matrix);
+      markerDummy.position.set(n,.029,p);markerDummy.updateMatrix();
+      markerAlongZ.setMatrixAt(markerZIndex++,markerDummy.matrix);
     }
     roads.push(n);
   }
+  markerAlongX.instanceMatrix.needsUpdate=true;
+  markerAlongZ.instanceMatrix.needsUpdate=true;
+  city.add(markerAlongX,markerAlongZ);
 
-  // Crosswalks, drains and junction details.
+  // Crosswalks and drains use instancing to keep the large city efficient.
   const whiteLine=new THREE.MeshStandardMaterial({color:0xd7d9d7,roughness:.8});
   const drainMat=new THREE.MeshStandardMaterial({color:0x292f32,metalness:.28,roughness:.8});
+  const junctionCount=roads.length*roads.length;
+  const crosswalkAlongX=new THREE.InstancedMesh(new THREE.BoxGeometry(.7,.025,4.4),whiteLine,junctionCount*7);
+  const crosswalkAlongZ=new THREE.InstancedMesh(new THREE.BoxGeometry(4.4,.025,.7),whiteLine,junctionCount*7);
+  const drains=new THREE.InstancedMesh(new THREE.BoxGeometry(1.25,.035,.75),drainMat,junctionCount);
+  let crossXIndex=0,crossZIndex=0,drainIndex=0;
   for(const x of roads)for(const z of roads){
     for(let k=0;k<7;k++){
-      addBox(city,.7,.025,4.4,x-7.3+k*2.25,.035,z,whiteLine,false);
-      addBox(city,4.4,.025,.7,x,.036,z-7.3+k*2.25,whiteLine,false);
+      markerDummy.position.set(x-7.3+k*2.25,.035,z);markerDummy.rotation.set(0,0,0);markerDummy.updateMatrix();
+      crosswalkAlongX.setMatrixAt(crossXIndex++,markerDummy.matrix);
+      markerDummy.position.set(x,.036,z-7.3+k*2.25);markerDummy.updateMatrix();
+      crosswalkAlongZ.setMatrixAt(crossZIndex++,markerDummy.matrix);
     }
-    addBox(city,1.25,.035,.75,x+12,.04,z+12,drainMat,false);
+    markerDummy.position.set(x+12,.04,z+12);markerDummy.rotation.set(0,0,0);markerDummy.updateMatrix();
+    drains.setMatrixAt(drainIndex++,markerDummy.matrix);
   }
+  crosswalkAlongX.instanceMatrix.needsUpdate=true;
+  crosswalkAlongZ.instanceMatrix.needsUpdate=true;
+  drains.instanceMatrix.needsUpdate=true;
+  city.add(crosswalkAlongX,crosswalkAlongZ,drains);
 
   // Manhattan blocks: brick walk-ups, older stone offices and modern glass towers.
   const colors=['brick','glass','stone'];
