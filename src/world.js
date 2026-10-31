@@ -287,7 +287,7 @@ export async function createWorld(scene){
   // Load the real CC0 city-car GLB; a procedural fallback keeps the game playable offline.
   const cars=[];
   const palette=[0xd9dce0,0x253c50,0xb73c32,0xd3a64d,0x7b898c,0xe4e2d9,0x343a40,0x47745b];
-  function addTraffic(template,index){
+  function addTraffic(template,index,animations=[]){
     const axis=index%2===0?'x':'z';
     const direction=index%3===0?-1:1;
     const roadIndex=(index%7)-3;
@@ -313,6 +313,12 @@ export async function createWorld(scene){
         node.material=Array.isArray(node.material)?cloned:cloned[0];
       });
       root.add(model);
+      const wheelClip=animations.find(clip=>/wheel-roll/i.test(clip.name));
+      if(wheelClip){
+        const mixer=new THREE.AnimationMixer(model);
+        mixer.clipAction(wheelClip).play();
+        mixers.push(mixer);
+      }
     }else{
       root=fallbackCar(city,axis,lane,position,direction,palette[index%palette.length]);
     }
@@ -322,8 +328,8 @@ export async function createWorld(scene){
       scene.add(root);
     }
     const wheels=[];
-    root.traverse(node=>{if(node.isMesh&&node.name&&/wheel/i.test(node.name))wheels.push(node);});
-    cars.push({root,axis,lane,direction,speed:rand(7.5,12.5),wheels});
+    root.traverse(node=>{if(node.name&&/wheel/i.test(node.name))wheels.push(node);});
+    cars.push({root,axis,lane,direction,speed:rand(7.5,12.5),wheels,animated:!!template});
   }
   function addFallbackTraffic(){
     for(let i=0;i<12;i++){
@@ -336,7 +342,7 @@ export async function createWorld(scene){
   const loader=new GLTFLoader();
   const carAssetPromise=loader.loadAsync(CAR_MODEL_URL).then(gltf=>{
     const template=gltf.scene;
-    for(let i=0;i<12;i++)addTraffic(template,i);
+    for(let i=0;i<12;i++)addTraffic(template,i,gltf.animations||[]);
     return {loaded:true,count:12};
   }).catch(error=>{
     console.warn('Le modèle de voiture CC0 ne peut pas être chargé, utilisation du modèle de secours.',error);
@@ -355,8 +361,9 @@ export async function createWorld(scene){
         p.z+=car.direction*car.speed*dt;
         if(p.z>LIMIT)p.z=-LIMIT;if(p.z<-LIMIT)p.z=LIMIT;
       }
-      for(const wheel of car.wheels)wheel.rotation.x+=car.direction*car.speed*dt/.34;
+      if(!car.animated)for(const wheel of car.wheels)wheel.rotation.x+=car.direction*car.speed*dt/.34;
     }
+    for(const mixer of mixers)mixer.update(dt);
     for(const coin of coins){
       coin.phase+=dt*2.1;
       coin.mesh.rotation.z+=dt*1.7;
