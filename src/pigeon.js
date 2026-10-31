@@ -179,14 +179,15 @@ export function createPigeon(opts={}){
 
       if(!s.air&&(i.up||lift>.22)){s.air=true;s.vy=2.7;s.sp=Math.max(s.sp,3.2);}
       if(s.air){
-        const cruise=6.0+Math.max(0,fwd)*3.4-Math.max(0,-fwd)*1.8;
+        const speedMultiplier=(i.speedMultiplier||1)*(i.boost?1.55*(i.boostMultiplier||1):1);
+        const cruise=(6.0+Math.max(0,fwd)*3.4-Math.max(0,-fwd)*1.8)*speedMultiplier;
         s.sp+=(cruise-s.sp)*k(1.7);
         s.vy+=(lift*4.6-s.vy)*k(2.65);
         s.y+=s.vy*dt;
         if(s.y>35){s.y=35;s.vy=Math.min(0,s.vy);}
         if(s.y<=0&&s.vy<0){s.y=0;s.air=false;s.vy=0;s.sp*=.42;}
       }else{
-        s.sp+=(fwd*3.2-s.sp)*k(4.8);
+        s.sp+=(fwd*3.2*(i.speedMultiplier||1)-s.sp)*k(4.8);
       }
 
       // Positive turn is right: mouse right and AZERTY D steer to the right.
