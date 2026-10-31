@@ -22,17 +22,18 @@ python -m http.server 8000
 
 Ouvre le dossier dans VS Code, installe l'extension **Live Server**, puis clique sur **Go Live**.
 
-Une connexion Internet est nécessaire pour charger Three.js et le modèle 3D de voiture CC0. Si le modèle de voiture n'est pas disponible, un véhicule de secours généré par le jeu est utilisé.
+Une connexion Internet est nécessaire pour charger Three.js depuis jsDelivr. Les voitures sont générées avec des géométries instanciées dans le navigateur : le trafic ne dépend donc pas du téléchargement d'un modèle GLB.
 
 ## Commandes
 
 | Action | Clavier |
 |---|---|
-| Avancer | **Z** (AZERTY) ou **W** (QWERTY) / ↑ |
-| Reculer | **S** / ↓ |
-| Aller à gauche | **Q** ou **A** / ← |
-| Aller à droite | **D** / → |
-| Boost | **Espace** ou **Maj** |
+| Tourner à gauche / droite | Déplacer la souris vers la gauche / droite, ou **Q** / **D** |
+| Monter / plonger | Déplacer la souris vers le haut / bas |
+| Décoller | **E** ou déplacer la souris vers le haut |
+| Marcher vers l'avant / arrière | **Z** / **S** (ou **W** / **S** en QWERTY) |
+| Plonger au clavier | **C** ou **Maj** |
+| Boost | **Espace** |
 | Pause | **Échap** |
 
 Sur téléphone, les boutons tactiles apparaissent pendant la partie.
@@ -40,8 +41,8 @@ Sur téléphone, les boutons tactiles apparaissent pendant la partie.
 ## Fonctionnalités
 
 - Ville 3D procédurale inspirée de Manhattan : immeubles en brique, façades vitrées, fenêtres, escaliers de secours, arbres, feux de circulation, lampadaires, trottoirs et avenues.
-- Voitures 3D avec modèle GLB réaliste CC0 chargé depuis 3DAssets.dev ; voitures de secours si le CDN est indisponible.
-- Pigeon personnalisé avec silhouette profilée, cou irisé, bec, yeux, pattes, queue et ailes à plumes superposées.
+- Trafic dense de **144 voitures** colorées, rendu par 5 lots de maillages instanciés pour limiter les appels de dessin et préserver les performances.
+- Pigeon à plumes instanciées, ailes articulées, cou irisé, bec, yeux, pattes, queue, marche au sol et contrôle de vol analogique.
 - Cinq skins : Commun, Neige (rare), Rouge-pigeon (légendaire), Ailes de dragon (mythique) et Multicolore (divin).
 - Poursuivants en forme de pilons frits, pièces à collectionner, score, boost et trois vies.
 - Cycle jour / soir / nuit, éclairage dynamique et ciel étoilé.
@@ -72,7 +73,7 @@ little-pigeon/
 
 ## Ressources 3D et limites du prototype
 
-La voiture utilise un modèle GLB externe de 3DAssets.dev, publié sous **CC0 1.0**. Les façades, la ville, le pigeon et les pilons sont construits par le code du jeu ; les textures de façades et de chaussée sont générées dans le navigateur. La musique est également générée à partir d'oscillateurs Web Audio et ne contient pas de morceau commercial.
+Les façades, les rues, les voitures instanciées, le pigeon et les pilons sont générés par le code du jeu ; les textures de façades et de chaussée sont produites dans le navigateur. Le modèle de pigeon est basé sur le code de référence fourni dans la conversation, puis adapté au contrôleur de jeu. La musique est générée à partir d'oscillateurs Web Audio et ne contient pas de morceau commercial.
 
 Ce prototype possède des modèles et une scène 3D plus détaillés que la première version, mais il ne s'agit pas encore d'un jeu photoréaliste de production : le pigeon et les pilons sont des modèles procéduraux, sans squelette Blender ni capture de mouvement. Les prochaines étapes possibles sont un modèle de pigeon riggé, des animations de vol et de course, des matériaux PBR de façades et des effets de circulation plus poussés.
 
