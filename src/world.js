@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 
-const CAR_MODEL_URL='https://cdn.3dassets.dev/assets/32487/v1/model.glb';
 const GRID=50, ROAD_WIDTH=20, LIMIT=238;
 
 function canvasTexture(kind){
@@ -397,10 +396,10 @@ export async function createWorld(scene){
     for(const coin of coins){
       coin.phase+=dt*2.1;
       coin.mesh.rotation.z+=dt*1.7;
-      coin.mesh.position.y=5.5+Math.sin(coin.phase)*.2;
+      coin.mesh.position.y=2.2+Math.sin(coin.phase)*.16;
       if(coin.respawn>0){
         coin.respawn-=dt;
-        if(coin.respawn<=0){const p=streetPoint();coin.mesh.position.set(p.x,5.6,p.z);coin.mesh.visible=true;}
+        if(coin.respawn<=0){const p=streetPoint();coin.mesh.position.set(p.x,2.2,p.z);coin.mesh.visible=true;}
       }
     }
   }
