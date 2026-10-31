@@ -168,7 +168,7 @@ function fallbackCar(scene,axis,lane,position,direction,color){
   addBox(root,1.52,.1,1.85,0,1.75,-.10,paint);
   for(const x of [-1,1])for(const z of [-1.3,1.3]){
     const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.36,.36,.22,14),rubber);
-    wheel.rotation.z=Math.PI/2;wheel.position.set(x,.43,z);root.add(wheel);
+    wheel.name='wheel';wheel.rotation.z=Math.PI/2;wheel.position.set(x,.43,z);root.add(wheel);
   }
   root.position.set(axis==='x'?position:lane,0,axis==='z'?position:lane);
   root.rotation.y=axis==='x'?(direction>0?Math.PI/2:-Math.PI/2):(direction>0?0:Math.PI);
