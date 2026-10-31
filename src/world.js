@@ -344,6 +344,7 @@ export async function createWorld(scene){
     cars.push(car);
     bodyFleet.setColorAt(i,new THREE.Color(carPalette[i%carPalette.length]));
   }
+  if(bodyFleet.instanceColor)bodyFleet.instanceColor.needsUpdate=true;
   function composeFleet(){
     for(let i=0;i<trafficCount;i++){
       const car=cars[i],yaw=car.axis==='x'?(car.direction>0?Math.PI/2:-Math.PI/2):(car.direction>0?0:Math.PI);
@@ -409,6 +410,8 @@ export async function createWorld(scene){
     scene.fog.near=daylight<.35?85:115;scene.fog.far=daylight<.35?270:360;
     sun.intensity=.12+daylight*2.05;hemi.intensity=.3+daylight*.9;fill.intensity=.1+daylight*.3;
     stars.material.opacity=Math.pow(1-daylight,1.6)*.88;
+    headMat.emissiveIntensity=.08+(1-daylight)*1.65;
+    tailMat.emissiveIntensity=.3+(1-daylight)*.5;
     return daylight>.68?'JOUR':daylight>.34?'SOIR':'NUIT';
   }
 
