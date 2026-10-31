@@ -117,7 +117,7 @@ function updateSkinShop(){
     const card=document.createElement('button');
     card.type='button';card.className='skin-card'+(selectedSkin===skin.id?' selected':'');
     card.style.setProperty('--accent',skin.accent);
-    card.innerHTML='<span class="skin-price">'+(owned?(selectedSkin===skin.id?'ÉQUIPÉ':'POSSÉDÉ'):fmt(skin.price)+' 🪙')+'</span><div class="skin-row"><span class="skin-avatar">🦈</span><span><b>'+skin.name+'</b><small>'+skin.rarity+'</small></span></div>';
+    card.innerHTML='<span class="skin-price">'+(owned?(selectedSkin===skin.id?'ÉQUIPÉ':'POSSÉDÉ'):fmt(skin.price)+' ◉')+'</span><div class="skin-row"><span class="skin-avatar">🦈</span><span><b>'+skin.name+'</b><small>'+skin.rarity+'</small></span></div>';
     card.addEventListener('click',()=>{
       if(!unlocked.includes(skin.id)){
         if(wallet<skin.price){toast('Il te manque des perles pour ce skin.');return;}
