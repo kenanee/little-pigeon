@@ -77,6 +77,8 @@ let toastClock=0;
 let hudClock=0;
 let lastFrame=performance.now();
 const playerPosition=pigeonRoot.position;
+let mouseSteer={x:0,y:0};
+let heading=0,turnVelocity=0,altitude=0,verticalVelocity=0,forwardSpeed=0,flightPitch=0,flightRoll=0,flying=false;
 
 function persist(){
   write('lp-wallet',wallet);write('lp-unlocked',unlocked);
@@ -156,6 +158,7 @@ function resetCoins(){
 function startGame(){
   setPigeonName($('pigeon-name').value);
   score=0;elapsed=0;health=3;boost=100;invulnerable=0;
+  heading=0;turnVelocity=0;altitude=0;verticalVelocity=0;forwardSpeed=0;flightPitch=0;flightRoll=0;flying=false;mouseSteer={x:0,y:0};
   pigeonRoot.position.set(0,5.7,0);pigeonRoot.rotation.set(0,0,0);
   pigeon.visible=true;
   enemies.forEach((enemy,i)=>{
@@ -205,7 +208,12 @@ function handleKeyDown(event){
 function handleKeyUp(event){keys[event.code]=false;}
 window.addEventListener('keydown',handleKeyDown);
 window.addEventListener('keyup',handleKeyUp);
-window.addEventListener('blur',()=>{if(gameState==='playing')pauseGame();});
+window.addEventListener('pointermove',event=>{
+  if(gameState!=='playing'||event.pointerType==='touch')return;
+  mouseSteer.x=clamp((event.clientX/window.innerWidth)*2-1,-1,1);
+  mouseSteer.y=clamp((event.clientY/window.innerHeight)*2-1,-1,1);
+});
+window.addEventListener('blur',()=>{mouseSteer={x:0,y:0};if(gameState==='playing')pauseGame();});
 
 document.querySelectorAll('.dpad button').forEach(button=>{
   const key=button.dataset.key;
@@ -220,53 +228,85 @@ const mobileBoost=$('mobile-boost');
 mobileBoost.addEventListener('pointerdown',e=>{e.preventDefault();keys.Space=true;});
 ['pointerup','pointercancel','pointerleave'].forEach(evt=>mobileBoost.addEventListener(evt,e=>{e.preventDefault();keys.Space=false;}));
 
-function isStreet(x,z){
-  const dx=Math.abs(x-Math.round(x/50)*50);
-  const dz=Math.abs(z-Math.round(z/50)*50);
-  return Math.min(dx,dz)<9.7;
-}
-function moveOnRoad(position,dx,dz){
-  const nx=clamp(position.x+dx,-230,230);
-  const nz=clamp(position.z+dz,-230,230);
-  if(isStreet(nx,nz)){position.x=nx;position.z=nz;return;}
-  if(isStreet(nx,position.z))position.x=nx;
-  if(isStreet(position.x,nz))position.z=nz;
+function deadzone(value,zone=.08){
+  const a=Math.abs(value);
+  return a<zone?0:Math.sign(value)*(a-zone)/(1-zone);
 }
 function updatePlayer(dt){
-  // Mapping explicite AZERTY : Q = gauche, D = droite, Z = avancer, S = reculer.
-  const left=keys.KeyQ||keys.KeyA||keys.ArrowLeft;
-  const right=keys.KeyD||keys.ArrowRight;
-  const forward=keys.KeyZ||keys.KeyW||keys.ArrowUp;
-  const backward=keys.KeyS||keys.ArrowDown;
-  const x=(right?1:0)-(left?1:0);
-  const z=(forward?1:0)-(backward?1:0);
-  const amount=Math.hypot(x,z);
-  const moving=amount>.01;
-  const boosting=(keys.Space||keys.ShiftLeft||keys.ShiftRight)&&boost>1&&moving;
+  // AZERTY and arrows remain available; mouse position provides analog 3D steering.
+  const keyTurn=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyQ||keys.KeyA||keys.ArrowLeft?1:0);
+  const fwd=(keys.KeyZ||keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0);
+  const mouseX=deadzone(mouseSteer.x);
+  const mouseLift=-deadzone(mouseSteer.y);
+  const lift=clamp(mouseLift+(keys.KeyE?1:0)-(keys.KeyC||keys.ShiftLeft||keys.ShiftRight?1:0),-1,1);
+  const turnTarget=clamp(keyTurn+mouseX*.95,-1,1);
   const skin=skins.find(s=>s.id===selectedSkin)||skins[0];
-  let speed=9.0*skin.speed;
-  if(boosting){speed*=1.68*skin.boost;boost=Math.max(0,boost-38*dt/skin.boost);}
-  else boost=Math.min(100,boost+18*dt);
-  if(moving){
-    const dx=x/amount*speed*dt,dz=z/amount*speed*dt;
-    moveOnRoad(playerPosition,dx,dz);
-    pigeonRoot.rotation.y=Math.atan2(dx,dz);
+  const boosting=keys.Space&&boost>1;
+
+  // Take off with E or by moving the mouse upward.
+  if(!flying&&(keys.KeyE||lift>.28)){
+    flying=true;altitude=Math.max(altitude,.25);verticalVelocity=2.5;
+    toast('Décollage ! Utilise la souris pour piloter.');
   }
-  pigeonRoot.position.y=5.65+Math.sin(elapsed*5.2)*(moving?.13:.055)+(boosting?.2:0);
-  const flap=Math.sin(elapsed*(boosting?19:moving?13:7))*(moving?.62:.22);
+
+  // Both yaw and altitude use damped velocities, not instant direction changes.
+  turnVelocity+=(turnTarget*(flying?1.28:1.8)-turnVelocity)*(1-Math.exp(-5.2*dt));
+  heading+=turnVelocity*dt;
+
+  if(flying){
+    const baseCruise=9.2*skin.speed;
+    const targetSpeed=Math.max(3.2,baseCruise+fwd*3.1)*(boosting?1.58*skin.boost:1);
+    forwardSpeed+=(targetSpeed-forwardSpeed)*(1-Math.exp(-2.8*dt));
+    const targetVerticalSpeed=lift*5.6;
+    verticalVelocity+=(targetVerticalSpeed-verticalVelocity)*(1-Math.exp(-2.7*dt));
+    altitude+=verticalVelocity*dt;
+    if(altitude>36){altitude=36;verticalVelocity=Math.min(0,verticalVelocity);}
+    if(altitude<=0&&verticalVelocity<0){
+      altitude=0;verticalVelocity=0;flying=false;
+      forwardSpeed=Math.min(forwardSpeed,5.2);
+      toast('Atterrissage');
+    }
+  }else{
+    const targetSpeed=fwd*5.0*skin.speed;
+    forwardSpeed+=(targetSpeed-forwardSpeed)*(1-Math.exp(-4.6*dt));
+    altitude=0;verticalVelocity=0;
+    if(boosting&&Math.abs(forwardSpeed)>.2)forwardSpeed*=1.015;
+  }
+
+  const dx=Math.sin(heading)*forwardSpeed*dt;
+  const dz=Math.cos(heading)*forwardSpeed*dt;
+  playerPosition.x=clamp(playerPosition.x+dx,-235,235);
+  playerPosition.z=clamp(playerPosition.z+dz,-235,235);
+  const bob=flying?Math.sin(elapsed*7)*.055:Math.abs(Math.sin(elapsed*8))*Math.min(.12,Math.abs(forwardSpeed)*.018);
+  playerPosition.y=5.65+altitude+bob;
+
+  const desiredPitch=clamp(-verticalVelocity*.065,-.38,.38);
+  flightPitch+=(desiredPitch-flightPitch)*(1-Math.exp(-4.5*dt));
+  const desiredRoll=clamp(-turnVelocity*.28,-.42,.42);
+  flightRoll+=(desiredRoll-flightRoll)*(1-Math.exp(-4.0*dt));
+  pigeonRoot.rotation.order='YXZ';
+  pigeonRoot.rotation.set(flightPitch,heading,flightRoll);
+
+  const flap=flying
+    ?Math.sin(elapsed*(boosting?19:12))*(boosting?.86:.58)
+    :Math.sin(elapsed*8)*Math.min(.22,Math.abs(forwardSpeed)*.045);
   pigeon.userData.wings[0].rotation.z=-flap;
   pigeon.userData.wings[1].rotation.z=flap;
+
   if(invulnerable>0){
     invulnerable-=dt;pigeon.visible=Math.floor(elapsed*14)%2===0;
     if(invulnerable<=0)pigeon.visible=true;
   }
-  if(boosting&&Math.random()<.025)audio.boost();
+  if(boosting){boost=Math.max(0,boost-36*dt/skin.boost);if(Math.random()<.018)audio.boost();}
+  else boost=Math.min(100,boost+17*dt);
 }
 function updateCamera(dt){
-  // Caméra stable derrière le pigeon : D reste visuellement à droite et Q à gauche.
-  const target=new THREE.Vector3(playerPosition.x,playerPosition.y+6.6,playerPosition.z-15.5);
-  camera.position.lerp(target,1-Math.exp(-4.2*dt));
-  camera.lookAt(playerPosition.x,playerPosition.y+0.5,playerPosition.z+4.2);
+  const forward=new THREE.Vector3(Math.sin(heading),0,Math.cos(heading));
+  const focus=playerPosition.clone().add(new THREE.Vector3(0,1.3,0));
+  const desired=focus.clone().addScaledVector(forward,-16.5).add(new THREE.Vector3(0,7.0+Math.min(altitude*.12,3.5),0));
+  camera.position.lerp(desired,1-Math.exp(-3.1*dt));
+  const look=focus.clone().addScaledVector(forward,6.5).add(new THREE.Vector3(0,flightPitch*2.2,0));
+  camera.lookAt(look);
 }
 function updateEnemies(dt){
   enemies.forEach((enemy,index)=>{
@@ -279,7 +319,7 @@ function updateEnemies(dt){
     enemy.position.y=5.1+Math.sin(elapsed*3.5+index)*.17;
     enemy.rotation.y=Math.atan2(dx,dz);
     enemy.userData.update(elapsed);
-    if(dist<2.45){
+    if(dist<2.45&&Math.abs(playerPosition.y-enemy.position.y)<3.0){
       hitPlayer();
       const push= index===0?-1:1;
       enemy.position.x=clamp(playerPosition.x+push*22,-220,220);
