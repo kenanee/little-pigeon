@@ -111,9 +111,10 @@ function createBuilding(scene,x,z,w,d,h,kind,materials){
   mesh.position.set(x,h/2,z);mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);
   addBox(scene,w+.45,.38,d+.45,x,h+.18,z,roofMat,false);
   const parapetMat=new THREE.MeshStandardMaterial({color:kind==='glass'?0x45535d:0x4d4945,roughness:.9});
-  for(const [px,pz,pw,pd] of [[x,h+0.48,z-d/2,w],[x,h+0.48,z+d/2,w],[x-w/2,h+0.48,z,.18,d],[x+w/2,h+0.48,z,.18,d]]){
-    addBox(scene,pw,.22,pd,px,pz,pz===undefined?z:pz,parapetMat,false);
-  }
+  addBox(scene,w,.22,.22,x,h+.48,z-d/2,parapetMat,false);
+  addBox(scene,w,.22,.22,x,h+.48,z+d/2,parapetMat,false);
+  addBox(scene,.22,.22,d,x-w/2,h+.48,z,parapetMat,false);
+  addBox(scene,.22,.22,d,x+w/2,h+.48,z,parapetMat,false);
   if(kind==='brick'&&h>25){
     addFireEscape(scene,x-w/2+.8,h,z+d/2+.06,3.4,d*.05,h,materials.metal);
   }
