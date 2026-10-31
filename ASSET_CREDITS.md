@@ -1,18 +1,19 @@
 # Asset credits — Little Pigeon
 
-## 3D traffic car
+## Pigeon model
 
-- **Asset:** City car (Car Park and Road Vehicle Fleet)
-- **Page:** https://3dassets.dev/assets/car-park-and-road-vehicle-fleet-city-car-033e3215
-- **GLB:** https://cdn.3dassets.dev/assets/32487/v1/model.glb
-- **Licence:** CC0 1.0 Universal
-- **Use in the game:** Loaded at runtime with Three.js GLTFLoader. A procedural fallback vehicle is used if the remote file cannot be reached.
+- **Reference:** feathered pigeon model source supplied by the project owner in this conversation.
+- **Integration:** adapted as an ES module in `src/pigeon.js`, including layered feather meshes, articulated wings, colour palettes and a smooth analog flight controller.
+- **External 3D files:** none required for the pigeon.
 
-3DAssets.dev states that its published GLB models are released under CC0 1.0 Universal. The licence allows use, modification and redistribution without attribution.
+## City traffic
 
-## Models authored in this repository
+- **Traffic:** 144 low-poly sedan-style vehicles generated procedurally in `src/world.js`.
+- **Rendering:** five `THREE.InstancedMesh` batches (body, glass, wheels, headlights and tail lights), keeping traffic to a small number of draw calls.
+- **External car files:** none loaded at runtime.
 
-- **Pigeon:** custom procedural geometry and layered feather meshes in `src/pigeon.js`.
+## Other game models
+
 - **Fried drumstick pursuers:** custom procedural geometry and a generated crust texture in `src/chicken.js`.
 - **Buildings, streets, trees, street furniture and coins:** procedural scene geometry and browser-generated textures in `src/world.js`.
 
